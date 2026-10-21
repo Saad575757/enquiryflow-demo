@@ -1,0 +1,110 @@
+// EnquiryFlow — Prisma schema (Prisma 7 syntax)
+//
+// Notes on version-specific syntax:
+//  * Prisma 7 reads the datasource URL from `prisma7.config.ts` (not from this file),
+//    so the `datasource db` block only declares the provider.
+//  * The generator is the new `prisma-client` generator, which requires an explicit
+//    `output` path and emits TypeScript source into src/generated/prisma.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  IN_PROGRESS
+  AWAITING_RESPONSE
+  QUALIFIED
+  CONVERTED
+  CLOSED_NOT_PROCEEDING
+}
+
+enum EnquiryType {
+  ADVISORY
+  EDUCATION
+  TRAINING
+  CONSULTATION
+  OTHER
+}
+
+enum EnquirySource {
+  WEBSITE
+  REFERRAL
+  EMAIL
+  PHONE
+  LINKEDIN
+  OTHER
+}
+
+model TeamMember {
+  id         String    @id @default(cuid())
+  name       String
+  department String?
+  createdAt  DateTime  @default(now())
+  enquiries  Enquiry[]
+
+  @@index([name])
+}
+
+model Enquiry {
+  id            String        @id @default(cuid())
+  title         String
+  contactName   String
+  email         String?
+  phone         String?
+  organisation  String?
+  enquiryType   EnquiryType   @default(OTHER)
+  source        EnquirySource?
+  description   String?
+  dateReceived  DateTime
+  status        EnquiryStatus @default(NEW)
+  assignedOwnerId String?
+
+  // Outstanding next action. `nextActionCompletedAt` being non-null means the
+  // current next action has been completed and therefore is no longer outstanding.
+  nextAction           String?
+  nextActionDueAt      DateTime?
+  nextActionCompletedAt DateTime?
+
+  internalNotes String?
+
+  // Explicit demo tagging so that "Reset demo data" can only ever touch records
+  // that were deliberately created by the seed script.
+  isDemoRecord Boolean @default(false)
+  demoRef      String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedOwner  TeamMember?      @relation(fields: [assignedOwnerId], references: [id], onDelete: SetNull)
+  followUpActions FollowUpAction[]
+
+  @@index([status])
+  @@index([assignedOwnerId])
+  @@index([dateReceived])
+  @@index([nextActionDueAt])
+  @@index([isDemoRecord])
+  @@index([createdAt])
+}
+
+/// Append-only history of follow-up actions. Completed actions are kept here
+/// instead of being overwritten on the Enquiry record.
+model FollowUpAction {
+  id          String    @id @default(cuid())
+  enquiryId   String
+  action      String
+  dueAt       DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  enquiry Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+
+  @@index([enquiryId])
+  @@index([completedAt])
+}

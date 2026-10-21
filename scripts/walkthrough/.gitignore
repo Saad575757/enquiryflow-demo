@@ -1,0 +1,4 @@
+# Recorded footage and rendered output are large binaries — regenerate them
+# with `node scripts/walkthrough/record.mjs` and `node scripts/walkthrough/build.mjs`.
+raw/
+out/
