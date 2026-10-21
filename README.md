@@ -82,14 +82,38 @@ Open <http://localhost:3000>.
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Start the dev server |
-| `npm run build` | Production build |
+| `npm run build` | Generate the Prisma client, then run the production build |
 | `npm run start` | Serve the production build |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run db:generate` | Generate the Prisma client |
 | `npm run db:migrate` | Apply/create migrations |
+| `npm run db:deploy` | Apply pending migrations (production) |
 | `npm run db:seed` | Reset the demo data set |
 | `npm run db:studio` | Open Prisma Studio |
+
+## Deploying to Vercel
+
+The generated Prisma client (`src/generated/prisma`) is git-ignored, so the
+build must generate it. `npm run build` does this for you:
+
+```
+prisma generate && next build
+```
+
+Set these environment variables in the Vercel project settings (for **all**
+environments, including Preview):
+
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | Neon **pooled** connection string (used by the app at runtime) |
+| `DIRECT_URL` | Neon **direct** connection string (used by Prisma Migrate) |
+
+Apply the migrations to the database once (locally, or from CI):
+
+```bash
+npm run db:deploy
+```
 
 ## Project structure
 
